@@ -24,13 +24,15 @@ NativeReanimatedModule::NativeReanimatedModule(
   std::shared_ptr<SharedValueRegistry> svr,
   std::shared_ptr<WorkletRegistry> wr,
   std::shared_ptr<Scheduler> scheduler,
-  std::shared_ptr<JSCallInvoker> jsInvoker) : NativeReanimatedModuleSpec(jsInvoker) {
+  std::shared_ptr<JSCallInvoker> jsInvoker,
+  std::shared_ptr<EventEmitter> evem) : NativeReanimatedModuleSpec(jsInvoker) {
 
   this->applierRegistry = ar;
   this->scheduler = scheduler;
   this->workletRegistry = wr;
   this->sharedValueRegistry = svr;
   this->runtime = std::move(rt);
+  this->eventEmitter = evem;
 }
 
 // worklets
@@ -51,6 +53,17 @@ void NativeReanimatedModule::unregisterWorklet( // make it async !!!
   double id) {
   scheduler->scheduleOnUI([id, this]() mutable {
     this->workletRegistry->unregisterWorklet((int)id);
+  });
+}
+
+
+void NativeReanimatedModule::addWorkletListener(jsi::Runtime &rt, std::string message, const jsi::Function &callbackCreator) {
+  __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "[native reanimated module] add worklet listener works");
+  jsi::Value val = callbackCreator.call(rt);
+  jsi::Function fun = val.getObject(rt).asFunction(rt);
+  std::shared_ptr<jsi::Function> funPtr(new jsi::Function(std::move(fun)));
+  scheduler->scheduleOnUI([this, message, funPtr](){
+    this->eventEmitter->addListener(message, funPtr);
   });
 }
 
@@ -150,7 +163,13 @@ void NativeReanimatedModule::unregisterApplierFromEvent(jsi::Runtime &rt, int id
 
 void NativeReanimatedModule::render() {
   std::shared_ptr<jsi::Value> event(new jsi::Value(*runtime, jsi::Value::undefined()));
-  std::shared_ptr<jsi::HostObject> ho(new WorkletModule(sharedValueRegistry, applierRegistry, workletRegistry, event));
+  std::shared_ptr<jsi::HostObject> ho(new WorkletModule(
+    sharedValueRegistry, 
+    applierRegistry, 
+    workletRegistry, 
+    eventEmitter, 
+    scheduler, 
+    event));
   applierRegistry->render(*runtime, ho);
 }
 
@@ -158,7 +177,13 @@ void NativeReanimatedModule::onEvent(std::string eventName, std::string eventAsS
   jsi::Value event = eval(*runtime, ("(" + eventAsString + ")").c_str());
   std::shared_ptr<jsi::Value> eventPtr(new jsi::Value(*runtime, event));
   __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "onEvent");
-  std::shared_ptr<jsi::HostObject> ho(new WorkletModule(sharedValueRegistry, applierRegistry, workletRegistry, eventPtr));
+  std::shared_ptr<jsi::HostObject> ho(new WorkletModule(
+    sharedValueRegistry, 
+    applierRegistry, 
+    workletRegistry, 
+    eventEmitter, 
+    scheduler, 
+    eventPtr));
   applierRegistry->event(*runtime, eventName, ho);
 }
 

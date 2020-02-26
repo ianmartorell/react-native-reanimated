@@ -11,6 +11,7 @@
 #include "WorkletRegistry.h"
 #include "SharedValueRegistry.h"
 #include "ApplierRegistry.h"
+#include "AndroidEventEmitter.h"
 #define APPNAME "NATIVE_REANIMATED"
 
 using namespace facebook;
@@ -43,6 +44,7 @@ Java_com_swmansion_reanimated_NativeProxy_install(JNIEnv* env,
     std::shared_ptr<WorkletRegistry> workletRegistry(new WorkletRegistry());
     std::shared_ptr<SharedValueRegistry> sharedValueRegistry(new SharedValueRegistry());
     std::shared_ptr<ApplierRegistry> applierRegistry(new ApplierRegistry);
+    std::shared_ptr<AndroidEventEmitter> eventEmitter(new AndroidEventEmitter);
 
     std::unique_ptr<jsi::Runtime> animatedRuntime(static_cast<jsi::Runtime*>(facebook::hermes::makeHermesRuntime().release()));
 
@@ -52,7 +54,8 @@ Java_com_swmansion_reanimated_NativeProxy_install(JNIEnv* env,
       sharedValueRegistry,
       workletRegistry,
       schedulerForModule,
-      nullptr);
+      nullptr,
+      eventEmitter);
     nrm = module;
     auto object = jsi::Object::createFromHostObject(runtime, module);
 

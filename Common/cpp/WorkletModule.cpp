@@ -3,23 +3,28 @@
 //
 
 #include "WorkletModule.h"
+#include "EventEmitter.h"
 #include <android/log.h>
 #define APPNAME "NATIVE_REANIMATED"
-
 
 WorkletModule::WorkletModule(std::shared_ptr<SharedValueRegistry> sharedValueRegistry,
                                    std::shared_ptr<ApplierRegistry> applierRegistry,
                                    std::shared_ptr<WorkletRegistry> workletRegistry,
+                                   std::shared_ptr<EventEmitter> eventEmitter,
+                                   std::shared_ptr<Scheduler> scheduler,
                                    std::shared_ptr<jsi::Value> event) {
   this->sharedValueRegistry = sharedValueRegistry;
   this->applierRegistry = applierRegistry;
   this->workletRegistry = workletRegistry;
+  this->eventEmitter = eventEmitter;
+  this->scheduler = scheduler;
   this->event = event;
 }
 
 jsi::Value WorkletModule::get(jsi::Runtime &rt, const jsi::PropNameID &name) {
+  __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "[worklet module] PRE-ENTER");
   auto propName = name.utf8(rt);
-  __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "pyta o  %s", propName.c_str());
+  __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "[worklet module] ENTER [%s]", propName.c_str());
   if (propName == "startWorklet") {
      auto callback = [this](
         jsi::Runtime &rt,
@@ -48,7 +53,17 @@ jsi::Value WorkletModule::get(jsi::Runtime &rt, const jsi::PropNameID &name) {
      };
     return jsi::Function::createFromHostFunction(rt, name, 1, callback);
   } else if (propName == "emit") {
-    //TODO
+    auto callback = [](
+      jsi::Runtime &rt,
+      const jsi::Value &thisValue,
+      const jsi::Value *args,
+      size_t count
+      ) -> jsi::Value {
+        std::string eventMessage = args[0].getString(rt).utf8(rt);
+        __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "[worklet module] EMIT %s", eventMessage.c_str());
+        return jsi::Value::undefined();
+    };
+    return jsi::Function::createFromHostFunction(rt, name, 1, callback);
   } else if (propName == "event") {
 
     return event->getObject(rt).getProperty(rt, "NativeMap");
@@ -60,7 +75,29 @@ jsi::Value WorkletModule::get(jsi::Runtime &rt, const jsi::PropNameID &name) {
         const jsi::Value *args,
         size_t count
         ) -> jsi::Value {
+      __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "[worklet module] LOG");
       __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "log: %s", args[0].getString(rt).utf8(rt).c_str());
+      return jsi::Value::undefined();
+    };
+    return jsi::Function::createFromHostFunction(rt, name, 1, callback);
+  } else if(propName == "message") {
+    auto callback = [this](
+        jsi::Runtime &rt,
+        const jsi::Value &thisValue,
+        const jsi::Value *args,
+        size_t count
+        ) -> jsi::Value {
+      __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "[worklet module] message: [%s], looking for listener", args[0].getString(rt).utf8(rt).c_str());
+      std::string str = args[0].getString(rt).utf8(rt).c_str();
+
+      std::shared_ptr<jsi::Function> callback = this->eventEmitter->emit(str);
+      if (callback == nullptr) {
+        return jsi::Value::undefined();
+      }
+      __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "[worklet module] listener found for message: [%s], calling", args[0].getString(rt).utf8(rt).c_str());
+
+      jsi::Value result = callback->call(rt);
+      __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "[worklet module] after calling, result is: [%s]", result.getString(rt).utf8(rt).c_str());
       return jsi::Value::undefined();
     };
     return jsi::Function::createFromHostFunction(rt, name, 1, callback);
