@@ -1,5 +1,6 @@
 #include "NativeReanimatedModule.h"
 #include <memory>
+#include <functional>
 
 
 using namespace facebook;
@@ -25,14 +26,14 @@ NativeReanimatedModule::NativeReanimatedModule(
   std::shared_ptr<WorkletRegistry> wr,
   std::shared_ptr<Scheduler> scheduler,
   std::shared_ptr<JSCallInvoker> jsInvoker,
-  std::shared_ptr<EventEmitter> evem) : NativeReanimatedModuleSpec(jsInvoker) {
+  std::shared_ptr<EventRegistry> eventRegistry) : NativeReanimatedModuleSpec(jsInvoker) {
 
   this->applierRegistry = ar;
   this->scheduler = scheduler;
   this->workletRegistry = wr;
   this->sharedValueRegistry = svr;
   this->runtime = std::move(rt);
-  this->eventEmitter = evem;
+  this->eventRegistry = eventRegistry;
 }
 
 // worklets
@@ -62,8 +63,15 @@ void NativeReanimatedModule::addWorkletListener(jsi::Runtime &rt, std::string me
   jsi::Value val = callbackCreator.call(rt);
   jsi::Function fun = val.getObject(rt).asFunction(rt);
   std::shared_ptr<jsi::Function> funPtr(new jsi::Function(std::move(fun)));
-  scheduler->scheduleOnUI([this, message, funPtr](){
-    this->eventEmitter->addListener(message, funPtr);
+
+  std::function<void(std::string)> stdfun = [&rt, this, funPtr](std::string message) {
+    scheduler->scheduleOnJS([&rt, funPtr, message] () {
+      funPtr->call(rt, jsi::String::createFromAscii(rt, message));
+    });
+  };
+  
+  scheduler->scheduleOnUI([this, message, stdfun](){
+    this->eventRegistry->addListener(message, stdfun);
   });
 }
 
@@ -106,9 +114,12 @@ void NativeReanimatedModule::getSharedValueAsync(jsi::Runtime &rt, double id, co
 }
 
 void NativeReanimatedModule::setSharedValue(jsi::Runtime &rt, double id, const jsi::Value &value) {
+  __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "set shared value enter");
   if (value.isNumber()) {
     std::shared_ptr<SharedValue> sv(new SharedDouble(id, value.getNumber()));
-    scheduler->scheduleOnUI([=](){
+    __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "set shared value outer number %f => %f", id, value.getNumber());
+    scheduler->scheduleOnUI([this, &value, id, sv](){
+      __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "set shared value inner number %f => %f", id, value.getNumber());
       std::shared_ptr<SharedValue> oldSV = sharedValueRegistry->getSharedValue(id);
       oldSV->setNewValue(sv);
     });
@@ -167,7 +178,7 @@ void NativeReanimatedModule::render() {
     sharedValueRegistry, 
     applierRegistry, 
     workletRegistry, 
-    eventEmitter, 
+    eventRegistry, 
     scheduler, 
     event));
   applierRegistry->render(*runtime, ho);
@@ -181,7 +192,7 @@ void NativeReanimatedModule::onEvent(std::string eventName, std::string eventAsS
     sharedValueRegistry, 
     applierRegistry, 
     workletRegistry, 
-    eventEmitter, 
+    eventRegistry, 
     scheduler, 
     eventPtr));
   applierRegistry->event(*runtime, eventName, ho);

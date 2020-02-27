@@ -27,20 +27,29 @@ class MainScreen extends React.Component {
     this.eeMessage = 'deal'
     this.eeSharedValue = new SharedValue(this.eeMessage)
     this.eeObject = new EventEmitter()
+    this.numval = new SharedValue(3)
+    this.flag = new SharedValue(0)
 
-    this.eeWorklet = new Worklet(function(v) {
+    this.eeWorklet = new Worklet(function(v, n, f) {
       'worklet'
       this.log(v.get())
-      this.message(v.get())
-      return true
+      this.log(n.get())
+      if (f.get() === 0) {
+        this.message(v.get())
+        f.set(1)
+      }
+      return (n.get() >= 5)
     })
   }
 
   componentDidMount() {
+    var t = this
     this.eeObject.addListener(this.eeMessage, function() {
-      return 'hello EE'
+      t.numval.set(11)
+      t.numval.set(11)
+      t.numval.set(11)
     })
-    this.release = this.eeWorklet.apply([this.eeSharedValue]);
+    this.release = this.eeWorklet.apply([this.eeSharedValue, this.numval, this.flag]);
   }
 
   componentWillUnmount() {

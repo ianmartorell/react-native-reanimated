@@ -13,7 +13,7 @@
 #include "SharedDouble.h"
 #include "WorkletModule.h"
 #include "ApplierRegistry.h"
-#include "EventEmitter.h"
+#include "EventRegistry.h"
 #include "Scheduler.h"
 #include <vector>
 
@@ -23,7 +23,7 @@ class WorkletModule : public jsi::HostObject {
   std::shared_ptr<SharedValueRegistry> sharedValueRegistry;
   std::shared_ptr<ApplierRegistry> applierRegistry;
   std::shared_ptr<WorkletRegistry> workletRegistry;
-  std::shared_ptr<EventEmitter> eventEmitter;
+  std::shared_ptr<EventRegistry> eventRegistry;
   std::shared_ptr<Scheduler> scheduler;
   std::shared_ptr<jsi::Value> event;
   static int applierId;
@@ -31,7 +31,7 @@ class WorkletModule : public jsi::HostObject {
     WorkletModule(std::shared_ptr<SharedValueRegistry> sharedValueRegistry,
                     std::shared_ptr<ApplierRegistry> applierRegistry,
                     std::shared_ptr<WorkletRegistry> workletRegistry,
-                    std::shared_ptr<EventEmitter> eventEmitter,
+                    std::shared_ptr<EventRegistry> eventRegistry,
                     std::shared_ptr<Scheduler> scheduler,
                     std::shared_ptr<jsi::Value> event
                     );

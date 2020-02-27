@@ -3,20 +3,20 @@
 //
 
 #include "WorkletModule.h"
-#include "EventEmitter.h"
+#include "EventRegistry.h"
 #include <android/log.h>
 #define APPNAME "NATIVE_REANIMATED"
 
 WorkletModule::WorkletModule(std::shared_ptr<SharedValueRegistry> sharedValueRegistry,
                                    std::shared_ptr<ApplierRegistry> applierRegistry,
                                    std::shared_ptr<WorkletRegistry> workletRegistry,
-                                   std::shared_ptr<EventEmitter> eventEmitter,
+                                   std::shared_ptr<EventRegistry> eventRegistry,
                                    std::shared_ptr<Scheduler> scheduler,
                                    std::shared_ptr<jsi::Value> event) {
   this->sharedValueRegistry = sharedValueRegistry;
   this->applierRegistry = applierRegistry;
   this->workletRegistry = workletRegistry;
-  this->eventEmitter = eventEmitter;
+  this->eventRegistry = eventRegistry;
   this->scheduler = scheduler;
   this->event = event;
 }
@@ -75,8 +75,14 @@ jsi::Value WorkletModule::get(jsi::Runtime &rt, const jsi::PropNameID &name) {
         const jsi::Value *args,
         size_t count
         ) -> jsi::Value {
-      __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "[worklet module] LOG");
-      __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "log: %s", args[0].getString(rt).utf8(rt).c_str());
+          const jsi::Value *value = &args[0];
+          if (value->isString()) {
+            __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "[Worklet module logger] %s", value->getString(rt).utf8(rt).c_str());
+          } else if (value->isNumber()) {
+            __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "[Worklet module logger] %f", value->getNumber());
+          } else {
+            __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "[Worklet module logger] unhandled value type");
+          }
       return jsi::Value::undefined();
     };
     return jsi::Function::createFromHostFunction(rt, name, 1, callback);
@@ -90,14 +96,7 @@ jsi::Value WorkletModule::get(jsi::Runtime &rt, const jsi::PropNameID &name) {
       __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "[worklet module] message: [%s], looking for listener", args[0].getString(rt).utf8(rt).c_str());
       std::string str = args[0].getString(rt).utf8(rt).c_str();
 
-      std::shared_ptr<jsi::Function> callback = this->eventEmitter->emit(str);
-      if (callback == nullptr) {
-        return jsi::Value::undefined();
-      }
-      __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "[worklet module] listener found for message: [%s], calling", args[0].getString(rt).utf8(rt).c_str());
-
-      jsi::Value result = callback->call(rt);
-      __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "[worklet module] after calling, result is: [%s]", result.getString(rt).utf8(rt).c_str());
+      this->eventRegistry->notify(str);
       return jsi::Value::undefined();
     };
     return jsi::Function::createFromHostFunction(rt, name, 1, callback);

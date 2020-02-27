@@ -13,7 +13,7 @@
 #include "SharedString.h"
 #include "WorkletModule.h"
 #include "ApplierRegistry.h"
-#include "EventEmitter.h"
+#include "EventRegistry.h"
 
 #include <unistd.h>
 
@@ -31,7 +31,7 @@ class NativeReanimatedModule : public NativeReanimatedModuleSpec {
       std::shared_ptr<WorkletRegistry> wr,
       std::shared_ptr<Scheduler> scheduler,
       std::shared_ptr<JSCallInvoker> jsInvoker,
-      std::shared_ptr<EventEmitter> evem);
+      std::shared_ptr<EventRegistry> eventRegistry);
     void registerWorklet(jsi::Runtime &rt, double id, std::string functionAsString) override;
     void unregisterWorklet(jsi::Runtime &rt, double id) override;
     void addWorkletListener(jsi::Runtime &rt, std::string message, const jsi::Function &callback) override;
@@ -54,7 +54,7 @@ class NativeReanimatedModule : public NativeReanimatedModuleSpec {
     std::shared_ptr<WorkletRegistry> workletRegistry;
     std::shared_ptr<SharedValueRegistry> sharedValueRegistry;
     std::shared_ptr<ApplierRegistry> applierRegistry;
-    std::shared_ptr<EventEmitter> eventEmitter;
+    std::shared_ptr<EventRegistry> eventRegistry;
     std::unique_ptr<jsi::Runtime> runtime;
 };
 
