@@ -7,9 +7,6 @@ using namespace facebook;
 namespace facebook {
 namespace react {
 
-#include <android/log.h>
-#define APPNAME "NATIVE_REANIMATED"
-
 jsi::Value eval(jsi::Runtime &rt, const char *code) {
   return rt.global().getPropertyAsFunction(rt, "eval").call(rt, code);
 }
@@ -157,12 +154,9 @@ void NativeReanimatedModule::render() {
 void NativeReanimatedModule::onEvent(std::string eventName, std::string eventAsString) {
   jsi::Value event = eval(*runtime, ("(" + eventAsString + ")").c_str());
   std::shared_ptr<jsi::Value> eventPtr(new jsi::Value(*runtime, event));
-  __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "onEvent");
   std::shared_ptr<jsi::HostObject> ho(new WorkletModule(sharedValueRegistry, applierRegistry, workletRegistry, eventPtr));
   applierRegistry->event(*runtime, eventName, ho);
 }
-
-
 
 // test method
 
@@ -174,9 +168,7 @@ void NativeReanimatedModule::call(
   std::shared_ptr<jsi::WeakObject> sharedFunction(fun);
 
   scheduler->scheduleOnUI([&rt, sharedFunction, this] () mutable {
-     __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "resultt OK");
      scheduler->scheduleOnJS([&rt, sharedFunction] () mutable {
-        __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "resultt2 OK");
         jsi::Value val = sharedFunction->lock(rt);
         jsi::Function cb = val.asObject(rt).asFunction(rt);
         cb.call(rt,  jsi::String::createFromUtf8(rt, "natywny string dla callback-a"));
