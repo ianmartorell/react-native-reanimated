@@ -2,10 +2,10 @@
 // 
 //
 
-#include "EventRegistry.h"
+#include "ListenerRegistry.h"
 #include <jni.h>
 
-void EventRegistry::notify(std::string message) {
+void ListenerRegistry::notify(std::string message) {
     auto event = events.find(message);
     if (event == events.end()) {
         return;
@@ -22,6 +22,6 @@ void EventRegistry::notify(std::string message) {
     }
 */
 
-void EventRegistry::addListener(std::string message, std::function<void(std::string)> callback) {
+void ListenerRegistry::addListener(std::string message, std::function<void(std::string)> callback) {
     events.insert({ message, callback });
 }

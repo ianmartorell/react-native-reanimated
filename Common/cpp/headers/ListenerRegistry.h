@@ -13,11 +13,11 @@
 
 namespace facebook {}
 
-class EventRegistry {
+class ListenerRegistry {
   public:
     void notify(std::string message);
     void addListener(std::string message, std::function<void(std::string)>);
-    virtual ~EventRegistry() {};
+    virtual ~ListenerRegistry() {};
   private:
     std::unordered_map<std::string, std::function<void(std::string)>> events;
 };

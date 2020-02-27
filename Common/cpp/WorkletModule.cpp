@@ -3,20 +3,20 @@
 //
 
 #include "WorkletModule.h"
-#include "EventRegistry.h"
+#include "ListenerRegistry.h"
 #include <android/log.h>
 #define APPNAME "NATIVE_REANIMATED"
 
 WorkletModule::WorkletModule(std::shared_ptr<SharedValueRegistry> sharedValueRegistry,
                                    std::shared_ptr<ApplierRegistry> applierRegistry,
                                    std::shared_ptr<WorkletRegistry> workletRegistry,
-                                   std::shared_ptr<EventRegistry> eventRegistry,
+                                   std::shared_ptr<ListenerRegistry> listenerRegistry,
                                    std::shared_ptr<Scheduler> scheduler,
                                    std::shared_ptr<jsi::Value> event) {
   this->sharedValueRegistry = sharedValueRegistry;
   this->applierRegistry = applierRegistry;
   this->workletRegistry = workletRegistry;
-  this->eventRegistry = eventRegistry;
+  this->listenerRegistry = listenerRegistry;
   this->scheduler = scheduler;
   this->event = event;
 }
@@ -96,7 +96,7 @@ jsi::Value WorkletModule::get(jsi::Runtime &rt, const jsi::PropNameID &name) {
       __android_log_print(ANDROID_LOG_VERBOSE, APPNAME, "[worklet module] message: [%s], looking for listener", args[0].getString(rt).utf8(rt).c_str());
       std::string str = args[0].getString(rt).utf8(rt).c_str();
 
-      this->eventRegistry->notify(str);
+      this->listenerRegistry->notify(str);
       return jsi::Value::undefined();
     };
     return jsi::Function::createFromHostFunction(rt, name, 1, callback);

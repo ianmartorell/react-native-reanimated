@@ -26,14 +26,14 @@ NativeReanimatedModule::NativeReanimatedModule(
   std::shared_ptr<WorkletRegistry> wr,
   std::shared_ptr<Scheduler> scheduler,
   std::shared_ptr<JSCallInvoker> jsInvoker,
-  std::shared_ptr<EventRegistry> eventRegistry) : NativeReanimatedModuleSpec(jsInvoker) {
+  std::shared_ptr<ListenerRegistry> listenerRegistry) : NativeReanimatedModuleSpec(jsInvoker) {
 
   this->applierRegistry = ar;
   this->scheduler = scheduler;
   this->workletRegistry = wr;
   this->sharedValueRegistry = svr;
   this->runtime = std::move(rt);
-  this->eventRegistry = eventRegistry;
+  this->listenerRegistry = listenerRegistry;
 }
 
 // worklets
@@ -71,7 +71,7 @@ void NativeReanimatedModule::addWorkletListener(jsi::Runtime &rt, std::string me
   };
   
   scheduler->scheduleOnUI([this, message, stdfun](){
-    this->eventRegistry->addListener(message, stdfun);
+    this->listenerRegistry->addListener(message, stdfun);
   });
 }
 
@@ -178,7 +178,7 @@ void NativeReanimatedModule::render() {
     sharedValueRegistry, 
     applierRegistry, 
     workletRegistry, 
-    eventRegistry, 
+    listenerRegistry, 
     scheduler, 
     event));
   applierRegistry->render(*runtime, ho);
@@ -192,7 +192,7 @@ void NativeReanimatedModule::onEvent(std::string eventName, std::string eventAsS
     sharedValueRegistry, 
     applierRegistry, 
     workletRegistry, 
-    eventRegistry, 
+    listenerRegistry, 
     scheduler, 
     eventPtr));
   applierRegistry->event(*runtime, eventName, ho);
